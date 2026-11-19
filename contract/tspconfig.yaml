@@ -1,0 +1,8 @@
+emit:
+  - "@typespec/openapi3"
+options:
+  "@typespec/openapi3":
+    # `tsp compile . --output-dir <dir>` writes the file elsewhere; by default it replaces the committed one.
+    emitter-output-dir: "{output-dir}"
+    output-file: openapi.yaml
+output-dir: "{project-root}"

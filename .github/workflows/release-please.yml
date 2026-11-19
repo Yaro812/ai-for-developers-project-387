@@ -1,0 +1,27 @@
+name: release-please
+
+on:
+  push:
+    branches:
+      - main
+
+# A newer run waits for the running one. Skipping a waiting run loses nothing:
+# release-please reads the state of main, not the commit that started the run.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # release-please labels its pull request through the Issues API and finds the merged
+    # release PR by that label to tag it, so it needs `issues: write` as well.
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: googleapis/release-please-action@45996ed1f6d02564a971a2fa1b5860e934307cf7 # v5.0.0

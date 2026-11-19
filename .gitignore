@@ -1,0 +1,11 @@
+.claude/worktrees/
+.env
+.documents/
+node_modules/
+dist/
+# Playwright output of the browser scenario.
+e2e/test-results/
+# Generated from contract/openapi.yaml by `mise run sdk`.
+frontend/src/generated/
+backend/src/generated/
+contract/tsp-output/
