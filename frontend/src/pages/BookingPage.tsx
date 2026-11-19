@@ -371,7 +371,7 @@ export default function BookingPage() {
                       maxLength={254}
                       {...guestField("email")}
                     />
-                    <TextInput label="Тема разговора" {...guestField("topic")} />
+                    <TextInput label="Тема разговора" maxLength={200} {...guestField("topic")} />
                     {saveFailed && (
                       <Alert color="red">Не удалось сохранить бронирование, проверьте данные</Alert>
                     )}
