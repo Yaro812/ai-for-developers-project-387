@@ -54,6 +54,17 @@ jobs:
         env:
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
           GH_TOKEN: ${{ github.token }}
+          # Nobody answers a permission request on a runner, so a rule that asks holds the agent until the timeout.
+          # OpenCode asks by default about a path outside the repository, a repeated tool call and an .env file;
+          # here the call is refused at once instead. The installed skills stay readable.
+          OPENCODE_CONFIG_CONTENT: >-
+            {
+              "permission": {
+                "doom_loop": "deny",
+                "external_directory": { "*": "deny", "/home/runner/.config/opencode/skills/*": "allow" },
+                "read": { "*.env": "deny", "*.env.*": "deny", "*.env.example": "allow" }
+              }
+            }
         with:
           model: opencode/deepseek-v4.1-flash-free
           # The `issues` event has no comment to take the command from, so the instruction lives here.
