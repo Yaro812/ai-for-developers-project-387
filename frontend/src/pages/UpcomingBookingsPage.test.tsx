@@ -48,7 +48,7 @@ test("the cards show every booking in the server's order, in the owner's time zo
     [
       "Анна",
       email("anna"),
-      "Обсуждение договора",
+      `Тема: ${bookings[0].topic}`,
       "Знакомство",
       "Слот: чт, 19 ноября, 10:00–11:00",
       "Создано: 18.11.2026, 15:05",

@@ -57,5 +57,5 @@ test("the owner creates an event type, a guest books it, the owner sees the book
     .filter({ hasText: "Знакомство" })
     .filter({ hasText: guestEmail });
   await expect(card).toContainText("Анна");
-  await expect(card).toContainText(topic);
+  await expect(card).toContainText(`Тема: ${topic}`);
 });
