@@ -81,7 +81,8 @@ jobs:
               }
             }
         run: |
-          opencode run --model opencode/big-pickle --file REVIEW.md "$(cat <<EOF
+          # `--file` takes a list, so it goes after the message.
+          opencode run --model opencode/big-pickle "$(cat <<EOF
           Ты независимый ревьюер pull request #$PR в репозитории $GITHUB_REPOSITORY. Ты не участвовал в реализации и не продолжаешь её сессию.
 
           Критерии, глубина проверки и формат замечаний — в приложенном REVIEW.md; следуй ему. Прочитай также AGENTS.md.
@@ -99,7 +100,7 @@ jobs:
 
           Ограничения: не меняй файлы, не коммить, не комментируй сам, не меняй pull request и issues. Решение о мерже принимает человек: не пиши «одобряю» или «можно мержить».
           EOF
-          )" > "$RUNNER_TEMP/review.md"
+          )" --file REVIEW.md > "$RUNNER_TEMP/review.md"
           test -s "$RUNNER_TEMP/review.md"
 
       # A separate step without the model publishes the text.
