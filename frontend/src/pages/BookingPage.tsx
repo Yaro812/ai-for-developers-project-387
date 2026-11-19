@@ -46,7 +46,7 @@ function monthCells(month: string) {
 const monthOf = (date: string) => date.slice(0, 7);
 const freeCount = ({ slots }: BookingWindowDay) => slots.filter(({ free }) => free).length;
 
-type Guest = { name: string; email: string };
+type Guest = { name: string; email: string; topic: string };
 
 const refusals = {
   BOOKING_CONFLICT: "Это время уже занято, выберите другой слот",
@@ -89,7 +89,7 @@ export default function BookingPage() {
   // True once the guest pressed «Продолжить»: the form replaces the calendar and the slots.
   const [confirming, setConfirming] = useState(false);
   // The guest's input outlives the form, so another day or slot keeps it.
-  const [guest, setGuest] = useState<Guest>({ name: "", email: "" });
+  const [guest, setGuest] = useState<Guest>({ name: "", email: "", topic: "" });
   const [errors, setErrors] = useState<Partial<Guest>>({});
   const [pending, setPending] = useState(false);
   const [booking, setBooking] = useState<Booking>();
@@ -140,7 +140,7 @@ export default function BookingPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const trimmed = { name: guest.name.trim(), email: guest.email.trim() };
+    const trimmed = { name: guest.name.trim(), email: guest.email.trim(), topic: guest.topic };
     const found = check(trimmed);
     setErrors(found);
     setSaveFailed(false);
@@ -149,7 +149,13 @@ export default function BookingPage() {
     setPending(true);
     const { data, error } = await createBooking({
       path: { id },
-      body: { start: slot.start, guestName: trimmed.name, guestEmail: trimmed.email },
+      body: {
+        start: slot.start,
+        guestName: trimmed.name,
+        guestEmail: trimmed.email,
+        // An empty field means no topic; anything else goes as typed, including spaces.
+        ...(guest.topic ? { topic: guest.topic } : {}),
+      },
     });
     setPending(false);
     if (data) {
@@ -365,6 +371,7 @@ export default function BookingPage() {
                       maxLength={254}
                       {...guestField("email")}
                     />
+                    <TextInput label="Тема разговора" {...guestField("topic")} />
                     {saveFailed && (
                       <Alert color="red">Не удалось сохранить бронирование, проверьте данные</Alert>
                     )}
@@ -394,6 +401,7 @@ export default function BookingPage() {
                   </Title>
                   <Text ta="center">{booking.guestName}</Text>
                   <Text ta="center">{booking.guestEmail}</Text>
+                  {booking.topic && <Text ta="center">{booking.topic}</Text>}
                   <Button
                     fullWidth
                     mt="sm"

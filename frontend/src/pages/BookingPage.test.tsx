@@ -341,6 +341,8 @@ const nameField = (description?: string) =>
   screen.getByRole("textbox", { name: "Имя", description }) as HTMLInputElement;
 const emailField = (description?: string) =>
   screen.getByRole("textbox", { name: "Email", description }) as HTMLInputElement;
+const topicField = (description?: string) =>
+  screen.getByRole("textbox", { name: "Тема разговора", description }) as HTMLInputElement;
 const bookButton = () => screen.queryByRole("button", { name: "Подтвердить бронирование" });
 const follows = (first: Node, second: Node) =>
   Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
@@ -500,6 +502,27 @@ test("a booking sends the trimmed values, and its confirmation replaces the form
     ["16:30–18:00Свободно", "false"],
   ]);
   expect(fact("Выбранное время")).toBe("Время не выбрано");
+});
+
+test("a topic is sent with the booking and shown on the confirmation", async () => {
+  let sent: unknown;
+  await openForm({
+    [bookingRoute]: async (request) => {
+      sent = await request.json();
+      return Response.json(
+        { ...booking, topic: (sent as { topic: string }).topic },
+        { status: 201 },
+      );
+    },
+  });
+
+  fillGuest("Анна", email("anna"));
+  fireEvent.change(topicField(), { target: { value: "Обсуждение договора" } });
+  fireEvent.click(bookButton()!);
+
+  const confirmation = await screen.findByRole("region", { name: confirmationName });
+  expect(sent).toMatchObject({ topic: "Обсуждение договора" });
+  expect(within(confirmation).getByText("Обсуждение договора")).toBeTruthy();
 });
 
 test("the book button is disabled while the request runs", async () => {

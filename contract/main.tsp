@@ -142,6 +142,9 @@ model BookingRequest {
   @format("email")
   @maxLength(254)
   guestEmail: string;
+
+  /** Optional single-line note about the call; absent when the guest gave none. */
+  topic?: string;
 }
 
 /** A booked interval. It has no id: bookings never overlap, so `start` is unique. */
@@ -156,6 +159,9 @@ model Booking {
 
   guestName: string;
   guestEmail: string;
+
+  /** Optional single-line note about the call; absent when the guest gave none. */
+  topic?: string;
 
   /** The server's current moment when it saved the booking. */
   createdAt: utcDateTime;

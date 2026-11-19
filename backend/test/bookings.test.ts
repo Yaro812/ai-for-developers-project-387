@@ -57,6 +57,19 @@ test("a booking is answered with 201, its event type and the end computed from t
   });
 });
 
+test("a topic is saved and answered with the booking as the guest sent it", async () => {
+  const app = await appWithEventTypes();
+
+  const response = await createBooking(app, "intro-60", {
+    start: "2026-11-19T07:00:00.000Z",
+    ...guest,
+    topic: "Обсуждение договора",
+  });
+
+  expect(response.statusCode).toBe(201);
+  expect(response.json()).toMatchObject({ topic: "Обсуждение договора" });
+});
+
 test("a start with +03:00 and with Z for one moment books the same interval", async () => {
   const app = await appWithEventTypes();
   const other = await appWithEventTypes();
