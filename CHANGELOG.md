@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.3.0](https://github.com/Yaro812/ai-for-developers-project-387/compare/v0.2.0...v0.3.0) (2026-11-19)
+
+
+### Features
+
+* **booking:** границы темы разговора и бронирование без темы ([#11](https://github.com/Yaro812/ai-for-developers-project-387/issues/11)) ([d221b7e](https://github.com/Yaro812/ai-for-developers-project-387/commit/d221b7e0d3a52b6fcbdafb5bf7939018ecf684e8))
+* **booking:** тема разговора от гостя до владельца ([#10](https://github.com/Yaro812/ai-for-developers-project-387/issues/10)) ([e9478f7](https://github.com/Yaro812/ai-for-developers-project-387/commit/e9478f73a1d1b6308912621b71ec2bc7fa68b994))
+
+
+### Bug Fixes
+
+* **booking:** ограничения темы в модели бронирования ([#11](https://github.com/Yaro812/ai-for-developers-project-387/issues/11)) ([f916b65](https://github.com/Yaro812/ai-for-developers-project-387/commit/f916b65ae9660c27259ac77ef34ce167aaa3ca78))
+* **frontend:** контраст текста кнопок и приглушённого текста ([#22](https://github.com/Yaro812/ai-for-developers-project-387/issues/22)) ([963bbe6](https://github.com/Yaro812/ai-for-developers-project-387/commit/963bbe620ff484f41a2be6e4ebcec3a6ef4872c9))
+* **frontend:** метаописание страницы ([#20](https://github.com/Yaro812/ai-for-developers-project-387/issues/20)) ([0f3c9f8](https://github.com/Yaro812/ai-for-developers-project-387/commit/0f3c9f81c019a8eecb4386a3de2560071e235913))
+* **frontend:** подпись темы в карточке владельца ([27cf022](https://github.com/Yaro812/ai-for-developers-project-387/commit/27cf022c87c5583236216f7dc486f5e3d0631463))
+* **frontend:** файл robots.txt ([#21](https://github.com/Yaro812/ai-for-developers-project-387/issues/21)) ([6942fc5](https://github.com/Yaro812/ai-for-developers-project-387/commit/6942fc5d4fbfd716f91bc8cf2e0fbb35eea8c564))
+* **github:** агент на раннере не ждёт ответа на запрос разрешения ([74ce55a](https://github.com/Yaro812/ai-for-developers-project-387/commit/74ce55ad90760260efe2b10f8a6401614a545d4b))
+* **github:** бесплатная модель агента ([c48d80d](https://github.com/Yaro812/ai-for-developers-project-387/commit/c48d80d0df59bed877690abe750bc8a24338f47c))
+* **github:** в комментарий авторевью попадает только текст ревью ([aa095b8](https://github.com/Yaro812/ai-for-developers-project-387/commit/aa095b8284fb86387ab4a119a61e4ebf57c7aa7f))
+* **github:** итоговая проверка аудита смотрит на последнюю закрытую задачу ([fad4410](https://github.com/Yaro812/ai-for-developers-project-387/commit/fad4410df70907519368e4268fb4b103a19f9d5b))
+* **github:** модель агента через провайдера OpenCode Go ([5f086b8](https://github.com/Yaro812/ai-for-developers-project-387/commit/5f086b880cbddd5df271744a4fd3c863f1d3ac38))
+* **github:** модель агента, доступная в регионе workspace ([a68e2cb](https://github.com/Yaro812/ai-for-developers-project-387/commit/a68e2cb5b3fe04cb2d0f0195a8c1ed642edea853))
+* **github:** порядок аргументов opencode run в авторевью ([e6e6107](https://github.com/Yaro812/ai-for-developers-project-387/commit/e6e6107a7de045055a42d3dc06eae0cfda7399a7))
+
 ## [0.2.0](https://github.com/Yaro812/ai-for-developers-project-386/compare/v0.1.0...v0.2.0) (2026-11-19)
 
 
