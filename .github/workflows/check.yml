@@ -20,6 +20,19 @@ jobs:
       # `mise install` has fetched Chromium; the runner also needs its system libraries.
       - run: mise run browser -- --with-deps
       - run: mise run check
+      # Evidence for the human before a merge: the Playwright trace of the browser scenario,
+      # the result and the commit it ran on. On `push` the checkout is the pushed commit, a pull request's head.
+      - if: always()
+        env:
+          RESULT: ${{ job.status }}
+        run: |
+          mkdir -p e2e/test-results
+          echo "sha=$(git rev-parse HEAD) result=$RESULT run=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" | tee e2e/test-results/result.txt
+      - if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: browser-${{ github.sha }}
+          path: e2e/test-results/
 
   # The image is built and checked here only: it is not published, and `mise run check` does not use Docker.
   docker:

@@ -14,7 +14,8 @@ const baseURL = `http://127.0.0.1:${process.env.E2E_PORT}`;
 
 export default defineConfig({
   forbidOnly: !!process.env.CI,
-  use: { baseURL },
+  // CI keeps the trace of a passing run too: it is uploaded as the evidence of the browser check.
+  use: { baseURL, trace: process.env.CI ? "on" : "off" },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   // A fresh production build and server for every run: the storage starts empty.
   webServer: {
