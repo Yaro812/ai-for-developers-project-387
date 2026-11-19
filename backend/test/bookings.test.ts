@@ -57,6 +57,19 @@ test("a booking is answered with 201, its event type and the end computed from t
   });
 });
 
+test("a topic is saved and answered with the booking as the guest sent it", async () => {
+  const app = await appWithEventTypes();
+
+  const response = await createBooking(app, "intro-60", {
+    start: "2026-11-19T07:00:00.000Z",
+    ...guest,
+    topic: "Обсуждение договора",
+  });
+
+  expect(response.statusCode).toBe(201);
+  expect(response.json()).toMatchObject({ topic: "Обсуждение договора" });
+});
+
 test("a start with +03:00 and with Z for one moment books the same interval", async () => {
   const app = await appWithEventTypes();
   const other = await appWithEventTypes();
@@ -135,6 +148,11 @@ test.each([
     "an email longer than 254 characters",
     { ...request, guestEmail: email("a".repeat(255 - email("").length)) },
   ],
+  ["an empty topic", { ...request, topic: "" }],
+  ["a topic of spaces only", { ...request, topic: "   " }],
+  ["a topic longer than 200 characters", { ...request, topic: "a".repeat(201) }],
+  ["a topic with a line feed", { ...request, topic: "a\nb" }],
+  ["a topic with a carriage return", { ...request, topic: "a\rb" }],
 ])("%s is a data error", async (_, payload) => {
   const app = await appWithEventTypes();
 
@@ -159,6 +177,61 @@ test("the longest name and email are accepted", async () => {
     guestName: longest.guestName,
     guestEmail: longest.guestEmail,
   });
+});
+
+test("a topic of exactly 200 characters is accepted unchanged", async () => {
+  const app = await appWithEventTypes();
+  const topic = "a".repeat(200);
+
+  const response = await createBooking(app, "intro-60", { ...request, topic });
+
+  expect(response.statusCode).toBe(201);
+  expect(response.json()).toMatchObject({ topic });
+});
+
+test("a booking without a topic has no topic property", async () => {
+  const app = await appWithEventTypes();
+
+  const response = await createBooking(app, "intro-60", request);
+
+  expect(response.statusCode).toBe(201);
+  expect(response.json()).not.toHaveProperty("topic");
+});
+
+test("a topic error comes before an unknown event type", async () => {
+  const app = await appWithEventTypes();
+
+  const response = await createBooking(app, "missing", { ...request, topic: "   " });
+
+  expect(response.json()).toEqual(validationError);
+});
+
+test("unavailable time with a topic is still refused", async () => {
+  const app = await appWithEventTypes();
+
+  const response = await createBooking(app, "intro-60", {
+    ...request,
+    start: "2026-11-19T07:05:00.000Z",
+    topic: "Обсуждение договора",
+  });
+
+  expect(response.statusCode).toBe(422);
+  expect(response.json()).toEqual(unavailableError);
+});
+
+test("a conflict with a topic is refused and saves no booking", async () => {
+  const app = await appWithEventTypes();
+  await createBooking(app, "intro-60", request);
+
+  const response = await createBooking(app, "review-90", {
+    ...request,
+    topic: "Обсуждение договора",
+  });
+
+  expect(response.statusCode).toBe(409);
+  expect(response.json()).toEqual(conflictError);
+  const list = await app.inject({ method: "GET", url: "/api/bookings" });
+  expect(list.json()).toEqual([expect.objectContaining({ ...guest, start: request.start })]);
 });
 
 // The current moment is Wednesday, 12:00 in Moscow (09:00 UTC); one-hour calls.

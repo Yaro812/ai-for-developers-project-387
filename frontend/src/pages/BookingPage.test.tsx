@@ -341,6 +341,8 @@ const nameField = (description?: string) =>
   screen.getByRole("textbox", { name: "Имя", description }) as HTMLInputElement;
 const emailField = (description?: string) =>
   screen.getByRole("textbox", { name: "Email", description }) as HTMLInputElement;
+const topicField = (description?: string) =>
+  screen.getByRole("textbox", { name: "Тема разговора", description }) as HTMLInputElement;
 const bookButton = () => screen.queryByRole("button", { name: "Подтвердить бронирование" });
 const follows = (first: Node, second: Node) =>
   Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
@@ -362,6 +364,8 @@ test("«Продолжить» waits for a slot and then opens the form in place
   ]);
   expect(nameField().value).toBe("");
   expect(emailField().value).toBe("");
+  expect(topicField().value).toBe("");
+  expect(topicField().maxLength).toBe(200);
   expect(follows(emailField(), bookButton()!)).toBe(true);
   expect(page().queryAllByRole("button", { name: /нояб\./ })).toEqual([]);
   expect(slotButtons()).toEqual([]);
@@ -375,9 +379,10 @@ function fillGuest(name: string, address: string) {
   fireEvent.change(emailField(), { target: { value: address } });
 }
 
-test("«Изменить» returns to the choice, and the name and email return with the next slot", async () => {
+test("«Изменить» returns to the choice, and the guest's input returns with the next slot", async () => {
   await openForm();
   fillGuest("Анна", email("anna"));
+  fireEvent.change(topicField(), { target: { value: "Обсуждение договора" } });
 
   fireEvent.click(page().getByRole("button", { name: "Изменить" }));
 
@@ -394,7 +399,11 @@ test("«Изменить» returns to the choice, and the name and email return 
     "вторник, 24 ноября",
     "14:00–15:30",
   ]);
-  expect([nameField().value, emailField().value]).toEqual(["Анна", email("anna")]);
+  expect([nameField().value, emailField().value, topicField().value]).toEqual([
+    "Анна",
+    email("anna"),
+    "Обсуждение договора",
+  ]);
 });
 
 async function openForm(routes: Parameters<typeof stubServer>[0] = {}) {
@@ -477,8 +486,11 @@ test("a booking sends the trimmed values, and its confirmation replaces the form
     guestEmail: email("anna"),
   });
   expect(within(confirmation).getByRole("heading", { name: confirmationName })).toBeTruthy();
-  expect(within(confirmation).getByText("Анна")).toBeTruthy();
-  expect(within(confirmation).getByText(email("anna"))).toBeTruthy();
+  expect(
+    within(confirmation)
+      .getAllByRole("paragraph")
+      .map((line) => line.textContent),
+  ).toEqual(["Анна", email("anna")]);
   // The title and the information stay; the form is gone.
   expect(screen.getByRole("heading", { level: 1, name: "Ревью проекта" })).toBeTruthy();
   expect([fact("Выбранная дата"), fact("Выбранное время")]).toEqual([
@@ -500,6 +512,27 @@ test("a booking sends the trimmed values, and its confirmation replaces the form
     ["16:30–18:00Свободно", "false"],
   ]);
   expect(fact("Выбранное время")).toBe("Время не выбрано");
+});
+
+test("a topic is sent with the booking and shown on the confirmation", async () => {
+  let sent: unknown;
+  await openForm({
+    [bookingRoute]: async (request) => {
+      sent = await request.json();
+      return Response.json(
+        { ...booking, topic: (sent as { topic: string }).topic },
+        { status: 201 },
+      );
+    },
+  });
+
+  fillGuest("Анна", email("anna"));
+  fireEvent.change(topicField(), { target: { value: "Обсуждение договора" } });
+  fireEvent.click(bookButton()!);
+
+  const confirmation = await screen.findByRole("region", { name: confirmationName });
+  expect(sent).toMatchObject({ topic: "Обсуждение договора" });
+  expect(within(confirmation).getByText("Обсуждение договора")).toBeTruthy();
 });
 
 test("the book button is disabled while the request runs", async () => {
@@ -547,6 +580,7 @@ test.each([
     const slots = slotsThenReload();
     await openForm({ [slotsRoute]: slots.route, [bookingRoute]: refusal });
     fillGuest("Анна", email("anna"));
+    fireEvent.change(topicField(), { target: { value: "Обсуждение договора" } });
 
     fireEvent.click(bookButton()!);
 
@@ -576,7 +610,11 @@ test.each([
 
     fireEvent.click(continueButton());
 
-    expect([nameField().value, emailField().value]).toEqual(["Анна", email("anna")]);
+    expect([nameField().value, emailField().value, topicField().value]).toEqual([
+      "Анна",
+      email("anna"),
+      "Обсуждение договора",
+    ]);
   },
 );
 
@@ -637,17 +675,30 @@ test("after a refusal a failed reload of the slots asks to reload the page", asy
   expect(screen.queryByRole("progressbar")).toBeNull();
 });
 
-test("a data error found by the server is reported and the values stay", async () => {
-  await openForm({ [bookingRoute]: apiError(400, "FST_ERR_VALIDATION", "Bad Request") });
+test("a server data error is reported and the guest's input stays, including the topic", async () => {
+  let sent: unknown;
+  await openForm({
+    [bookingRoute]: async (request) => {
+      sent = await request.json();
+      return apiError(400, "FST_ERR_VALIDATION", "Bad Request")();
+    },
+  });
   fillGuest("Анна", email("anna"));
+  // A non-empty topic goes as typed; the server, not the form, decides about spaces.
+  fireEvent.change(topicField(), { target: { value: "   " } });
 
   fireEvent.click(bookButton()!);
 
   expect(
     await screen.findByText("Не удалось сохранить бронирование, проверьте данные"),
   ).toBeTruthy();
+  expect(sent).toMatchObject({ topic: "   " });
   expect(fact("Выбранное время")).toBe("09:15–10:45");
-  expect([nameField().value, emailField().value]).toEqual(["Анна", email("anna")]);
+  expect([nameField().value, emailField().value, topicField().value]).toEqual([
+    "Анна",
+    email("anna"),
+    "   ",
+  ]);
 });
 
 test("an event type gone while booking says it no longer exists and links to the catalog, without the header", async () => {

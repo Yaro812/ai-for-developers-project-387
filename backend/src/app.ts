@@ -128,7 +128,7 @@ export function buildApp(
     // requests for overlapping intervals the second sees the first booking and gets 409.
     async createBooking(request, reply) {
       const eventType = findEventType(request.params.id);
-      const { start, guestName, guestEmail } = request.body;
+      const { start, guestName, guestEmail, topic } = request.body;
       // Only a slot can be booked; this catches every reason the time is unavailable.
       const slot = bookingWindow(eventType.durationMinutes)
         .flatMap(({ slots }) => slots)
@@ -138,7 +138,14 @@ export function buildApp(
       const conflict = bookings.find((booking) => overlaps(booking, slot));
       if (conflict) throw new BookingConflict(conflict.start);
       const createdAt = new Date().toISOString();
-      const booking = { eventType, ...slot, guestName, guestEmail, createdAt };
+      const booking = {
+        eventType,
+        ...slot,
+        guestName,
+        guestEmail,
+        ...(topic === undefined ? {} : { topic }),
+        createdAt,
+      };
       bookings.push(booking);
       return reply.code(201).send(booking);
     },

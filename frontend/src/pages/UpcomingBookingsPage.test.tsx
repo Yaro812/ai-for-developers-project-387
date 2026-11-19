@@ -19,6 +19,7 @@ const bookings = [
     end: "2026-11-19T08:00:00.000Z",
     guestName: "Анна",
     guestEmail: email("anna"),
+    topic: "Обсуждение договора",
     // Wednesday, 15:05 in Moscow.
     createdAt: "2026-11-18T12:05:00.000Z",
   },
@@ -47,6 +48,7 @@ test("the cards show every booking in the server's order, in the owner's time zo
     [
       "Анна",
       email("anna"),
+      `Тема: ${bookings[0].topic}`,
       "Знакомство",
       "Слот: чт, 19 ноября, 10:00–11:00",
       "Создано: 18.11.2026, 15:05",

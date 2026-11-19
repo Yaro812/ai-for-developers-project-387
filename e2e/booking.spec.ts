@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 // Fake guest addresses on the reserved example.com domain.
 const email = (local: string) => `${local}@example.com`;
 const guestEmail = email("anna");
+const topic = "Обсуждение договора";
 
 // The path from README on real clocks: the server starts empty for every run, and the date is not set.
 test("the owner creates an event type, a guest books it, the owner sees the booking", async ({
@@ -36,10 +37,13 @@ test("the owner creates an event type, a guest books it, the owner sees the book
   await page.getByRole("button", { name: "Продолжить" }).click();
   await page.getByRole("textbox", { name: "Имя" }).fill("Анна");
   await page.getByRole("textbox", { name: "Email" }).fill(guestEmail);
+  await page.getByRole("textbox", { name: "Тема разговора" }).fill(topic);
   await page.getByRole("button", { name: "Подтвердить бронирование" }).click();
-  await expect(
-    page.getByRole("heading", { name: "Бронирование подтверждено. До встречи!" }),
-  ).toBeVisible();
+  const confirmation = page.getByRole("region", {
+    name: "Бронирование подтверждено. До встречи!",
+  });
+  await expect(confirmation).toBeVisible();
+  await expect(confirmation).toContainText(topic);
 
   // The booked slot stays in the list and is no longer free.
   await page.getByRole("button", { name: "Забронировать ещё" }).click();
@@ -48,7 +52,10 @@ test("the owner creates an event type, a guest books it, the owner sees the book
   ).toBeDisabled();
 
   await page.getByRole("link", { name: "Предстоящие бронирования" }).click();
-  await expect(
-    page.getByRole("article").filter({ hasText: "Знакомство" }).filter({ hasText: guestEmail }),
-  ).toContainText("Анна");
+  const card = page
+    .getByRole("article")
+    .filter({ hasText: "Знакомство" })
+    .filter({ hasText: guestEmail });
+  await expect(card).toContainText("Анна");
+  await expect(card).toContainText(`Тема: ${topic}`);
 });

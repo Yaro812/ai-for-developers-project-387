@@ -31,6 +31,7 @@ export default function UpcomingBookingsPage() {
               <Card key={booking.start} component="article" withBorder radius="lg" padding="lg">
                 <Text fw={700}>{booking.guestName}</Text>
                 <Text c="dimmed">{booking.guestEmail}</Text>
+                {booking.topic && <Text c="dimmed">Тема: {booking.topic}</Text>}
                 <Text c="dimmed">{booking.eventType.title}</Text>
                 <Text c="dimmed">
                   Слот: {longDay.format(new Date(booking.start))}, {timeRange(booking)}

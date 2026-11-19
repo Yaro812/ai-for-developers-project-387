@@ -215,6 +215,12 @@ components:
           type: string
         guestEmail:
           type: string
+        topic:
+          type: string
+          minLength: 1
+          maxLength: 200
+          pattern: ^[^\r\n]*\S[^\r\n]*$
+          description: Optional single-line note about the call, at most 200 characters; absent when the guest gave none.
         createdAt:
           type: string
           format: date-time
@@ -253,6 +259,12 @@ components:
           type: string
           maxLength: 254
           format: email
+        topic:
+          type: string
+          minLength: 1
+          maxLength: 200
+          pattern: ^[^\r\n]*\S[^\r\n]*$
+          description: Optional single-line note about the call, at most 200 characters; absent when the guest gave none.
       description: What the guest sends to book a slot; the event type comes in the path.
     BookingWindowDay:
       type: object

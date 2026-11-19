@@ -71,6 +71,29 @@ test("bookings of every event type come in one list by start", async () => {
   ]);
 });
 
+test("the topic comes in the upcoming list with its booking", async () => {
+  const app = await appWithEventTypes();
+  await book(app, "intro-60", {
+    start: "2026-11-19T07:00:00.000Z",
+    ...anna,
+    topic: "Обсуждение договора",
+  });
+
+  const response = await upcomingBookings(app);
+
+  expect(response.statusCode).toBe(200);
+  expect(response.json()).toEqual([
+    {
+      eventType: introCall,
+      start: "2026-11-19T07:00:00.000Z",
+      end: "2026-11-19T08:00:00.000Z",
+      ...anna,
+      topic: "Обсуждение договора",
+      createdAt,
+    },
+  ]);
+});
+
 test("an ongoing booking stays in the list until its end, a finished one leaves it", async () => {
   const app = await appWithEventTypes();
   // Today, 13:00–14:00 and 14:00–15:30 in Moscow.
