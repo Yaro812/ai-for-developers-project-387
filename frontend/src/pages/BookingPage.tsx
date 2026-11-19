@@ -55,7 +55,7 @@ const refusals = {
 
 // The contract's rules for the guest, checked on trimmed values before sending;
 // the fields cap the lengths, and the server checks everything again.
-function check({ name, email }: Guest) {
+function check({ name, email }: Pick<Guest, "name" | "email">) {
   const errors: Partial<Guest> = {};
   if (!name) errors.name = "Укажите имя";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Неверный формат email";
@@ -140,8 +140,9 @@ export default function BookingPage() {
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    const trimmed = { name: guest.name.trim(), email: guest.email.trim(), topic: guest.topic };
-    const found = check(trimmed);
+    const name = guest.name.trim();
+    const email = guest.email.trim();
+    const found = check({ name, email });
     setErrors(found);
     setSaveFailed(false);
     if (!slot || Object.keys(found).length > 0) return;
@@ -151,8 +152,8 @@ export default function BookingPage() {
       path: { id },
       body: {
         start: slot.start,
-        guestName: trimmed.name,
-        guestEmail: trimmed.email,
+        guestName: name,
+        guestEmail: email,
         // An empty field means no topic; anything else goes as typed, including spaces.
         ...(guest.topic ? { topic: guest.topic } : {}),
       },

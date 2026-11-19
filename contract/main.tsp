@@ -163,7 +163,10 @@ model Booking {
   guestName: string;
   guestEmail: string;
 
-  /** Optional single-line note about the call; absent when the guest gave none. */
+  /** Optional single-line note about the call, at most 200 characters; absent when the guest gave none. */
+  @minLength(1)
+  @maxLength(200)
+  @pattern("^[^\\r\\n]*\\S[^\\r\\n]*$")
   topic?: string;
 
   /** The server's current moment when it saved the booking. */
