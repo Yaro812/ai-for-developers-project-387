@@ -12,4 +12,6 @@ The skills speak in terms of five canonical triage roles. This file maps those r
 
 When a skill mentions a role (e.g. "apply the AFK-ready triage label"), use the corresponding label string from this table.
 
+An issue opened without these labels is an incoming request: `.github/workflows/triage.yml` triages it automatically. An issue opened with `ready-for-agent`, `ready-for-human` or `wontfix` already has its outcome, and the workflow skips it; that is how the spec and tickets published by `to-spec` and `to-tickets` stay out of triage.
+
 Edit the "Label in our tracker" column to match whatever vocabulary you actually use.
