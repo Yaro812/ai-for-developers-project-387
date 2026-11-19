@@ -124,6 +124,27 @@ docker run -p 3000:3000 calendar
 > [!WARNING]
 > Данные живут в памяти контейнера, поэтому каждый выкат и каждый перезапуск сервиса на Railway стирают типы встреч и бронирования.
 
+## Агент в GitHub
+
+Агент [OpenCode](https://opencode.ai/docs/github/) работает в GitHub Actions и отвечает от имени приложения [opencode-agent](https://github.com/apps/opencode-agent), установленного на репозиторий.
+
+### Воркфлоу `opencode`
+
+Файл: [.github/workflows/opencode.yml](.github/workflows/opencode.yml).
+
+- **Назначение.** Агент выполняет команду из комментария: объясняет issue, запускает скилл, правит код и открывает pull request.
+- **Событие.** Новый комментарий в issue или pull request (`issue_comment`) и новый комментарий к строке diff (`pull_request_review_comment`), оба с `types: [created]`: правка комментария агента не вызывает.
+- **Команды.** `mentions: /opencode,/oc`, набор OpenCode по умолчанию. Пример: `/oc explain this issue`. Скилл вызывается текстом: `/oc запусти скилл to-spec по обсуждению этого issue`.
+- **Кто может вызвать.** Владелец, участник организации или коллаборатор репозитория. Комментарии ботов, в том числе самого агента, и посторонних авторов задание пропускает. Pull request из форка задание отклоняет первым шагом, до checkout, поэтому код форка не выполняется рядом с ключом модели.
+- **Модель.** `opencode/deepseek-v4.1-flash`. Ключ лежит в секрете репозитория `OPENCODE_API_KEY` (Settings → Secrets and variables → Actions).
+- **Публикация сессий.** `share: false`: сессии агента не публикуются. Репозиторий открытый, а сессия содержит контекст задачи.
+- **Права.** Стандартная авторизация OpenCode: `contents: read`, `id-token: write` и `persist-credentials: false` у checkout; комментарии, push и pull request агент делает правами приложения. Токен приложения не доходит до `gh` в оболочке агента, поэтому `gh` получает токен задания с `issues: write`: скиллы читают и публикуют issues так, как описано в [docs/agents/issue-tracker.md](docs/agents/issue-tracker.md). `pull-requests: read` нужен проверке форка.
+- **Окружение раннера.** Те же инструменты и зависимости, что локально (`mise install`), поэтому агенту доступна `mise run check`. Скиллы первого проекта (`to-spec`, `to-tickets`, `implement-spec` и остальные из [mattpocock/skills](https://github.com/mattpocock/skills) v1.3.1) ставятся на раннер при каждом запуске; `AGENTS.md` и `docs/agents/` приходят вместе с кодом.
+- **Ограничения.** `timeout-minutes: 30`; `concurrency` допускает один запуск на issue или pull request, следующая команда ждёт завершения предыдущей.
+- **Результаты.** Ответ агента появляется комментарием в том же issue или pull request, правки — коммитами в ветке pull request. Прогоны и их журналы: [Actions → opencode](https://github.com/Yaro812/ai-for-developers-project-387/actions/workflows/opencode.yml).
+
+Остановить агента: Cancel workflow на странице прогона прерывает текущий запуск, Disable workflow в меню воркфлоу отключает будущие.
+
 ---
 
 <details>
