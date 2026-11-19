@@ -96,7 +96,7 @@ jobs:
           5. Сверь разделы «Проверки», «Риск» и «Откат» описания с фактическим diff.
           6. Учти прежние комментарии: разобранные замечания не повторяй.
 
-          Ответь по-русски одним сообщением в Markdown: оно станет комментарием pull request. Структура: «Источники» (что прочитано и чего не хватает), «Замечания» (по формату REVIEW.md: файл и строка, условия, последствие, чем подтверждено) или прямая фраза «Подтверждённых дефектов не найдено», «CI», «Риск и глубина проверки».
+          Ответь по-русски одним сообщением в Markdown: оно станет комментарием pull request. Начни его строкой «## Источники», разделы — заголовки второго уровня: «Источники» (что прочитано и чего не хватает), «Замечания» (по формату REVIEW.md: файл и строка, условия, последствие, чем подтверждено) или прямая фраза «Подтверждённых дефектов не найдено», «CI», «Риск и глубина проверки».
 
           Ограничения: не меняй файлы, не коммить, не комментируй сам, не меняй pull request и issues. Решение о мерже принимает человек: не пиши «одобряю» или «можно мержить».
           EOF
@@ -109,6 +109,9 @@ jobs:
           {
             printf '> *Авторевью версии %s; [журнал](%s/%s/actions/runs/%s). Код оно не меняет, решение о мерже принимает человек.*\n\n' \
               "$HEAD_SHA" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID"
-            cat "$RUNNER_TEMP/review.md"
+            # stdout carries the agent's notes between tool calls too; the review starts at its first heading.
+            sed -n '/^## Источники/,$p' "$RUNNER_TEMP/review.md" > "$RUNNER_TEMP/body.md"
+            test -s "$RUNNER_TEMP/body.md" || cp "$RUNNER_TEMP/review.md" "$RUNNER_TEMP/body.md"
+            cat "$RUNNER_TEMP/body.md"
           } > "$RUNNER_TEMP/comment.md"
           gh pr comment "$PR" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/comment.md"
