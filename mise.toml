@@ -1,0 +1,94 @@
+[settings]
+# Required by [daemons].
+experimental = true
+
+[tools]
+node = "26.13.1"
+hk = "2.13.0"
+pitchfork = "2.35.0"
+jactionlint = "2.6.0"
+# The Railway MCP server from .mcp.json: `railway mcp local`.
+railway = "5.74.0"
+
+[env]
+_.path = ["node_modules/.bin"]
+
+[hooks]
+postinstall = [{ task = "browser" }, { task = "sdk" }]
+
+[tasks.install]
+description = "Install npm dependencies and Git hooks"
+run = ["npm ci", "hk install --mise"]
+sources = ["package-lock.json"]
+outputs = ["node_modules/.package-lock.json"]
+
+[tasks.browser]
+description = "Install Chromium for the browser scenario; extra arguments go to playwright install, e.g. --with-deps"
+depends = ["install"]
+run = "playwright install chromium"
+
+[tasks.generate]
+description = "Compile TypeSpec to contract/openapi.yaml, then generate the SDK and server types from it"
+depends = ["install"]
+run = ["npm run openapi -w contract", "npm run sdk -w contract"]
+
+[tasks.sdk]
+description = "Generate the frontend SDK and backend server types from contract/openapi.yaml"
+depends = ["install"]
+run = "npm run sdk -w contract"
+
+[tasks.contract]
+description = "Fail if contract/openapi.yaml differs from what TypeSpec compiles to"
+depends = ["install"]
+run = "npm run openapi:verify -w contract"
+
+[tasks.lint]
+description = "Run linters and format checks on all files"
+depends = ["install"]
+run = "hk check --all"
+
+[tasks.fix]
+description = "Apply linter and formatter fixes to all files"
+depends = ["install"]
+run = "hk fix --all"
+
+[tasks.typecheck]
+description = "Type-check backend, frontend and e2e"
+depends = ["sdk"]
+run = "npm run typecheck --workspaces --if-present"
+
+[tasks.test]
+description = "Run tests"
+depends = ["sdk"]
+run = "npm test --workspaces --if-present"
+
+[tasks.build]
+description = "Build the frontend for production"
+depends = ["sdk"]
+run = "npm run build -w frontend"
+
+[tasks.start]
+description = "Build the frontend, then serve it and the API from one server on HOST and PORT (default 127.0.0.1:3000)"
+depends = ["build"]
+run = "npm start -w backend"
+
+[tasks.e2e]
+description = "Run the browser scenario; Playwright builds and starts a fresh production server (mise run start) on a free port"
+depends = ["browser"]
+# The server's `mise run start` regenerates the SDK and server types, which these tasks read.
+wait_for = ["typecheck", "test"]
+run = "playwright test --config e2e/playwright.config.ts"
+
+[tasks.check]
+description = "Run every check; CI runs this same task"
+depends = ["lint", "contract", "typecheck", "test", "e2e"]
+
+# Dev servers: `mise daemons start|stop|status|logs`, addresses in `mise daemons urls`.
+# Automatic ports give each Git worktree its own pair.
+[daemons.backend]
+run = "exec npm run dev -w backend"
+port = { auto = true, base = 3000 }
+
+[daemons.frontend]
+run = "exec npm run dev -w frontend -- --port $FRONTEND_PORT --strictPort"
+port = { auto = true, base = 5173 }

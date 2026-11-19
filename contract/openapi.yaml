@@ -1,0 +1,387 @@
+openapi: 3.0.0
+info:
+  title: Календарь звонков
+  description: Call booking API. Operations are named in camelCase, so each `operationId` equals the operation name.
+  version: 0.0.0
+tags: []
+paths:
+  /api/bookings:
+    get:
+      operationId: listUpcomingBookings
+      description: Bookings of every event type that end after the current moment, by start in ascending order.
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Booking'
+  /api/event-types:
+    get:
+      operationId: listEventTypes
+      description: All event types in creation order.
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/EventType'
+    post:
+      operationId: createEventType
+      description: Checks the data first, then whether the id is taken.
+      parameters: []
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventType'
+        '400':
+          description: The request breaks the contract schema; Fastify's request validation answers it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '409':
+          description: Another event type already has this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventTypeIdTakenError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventType'
+  /api/event-types/{id}:
+    get:
+      operationId: getEventType
+      description: The path `id` has no `pattern` or `maxLength`, so any unknown id gets 404, never 400.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventType'
+        '404':
+          description: No event type has this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventTypeNotFoundError'
+  /api/event-types/{id}/bookings:
+    post:
+      operationId: createBooking
+      description: Checks the data, then the event type, then whether the interval is a slot, then whether it overlaps a booking of any event type.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '201':
+          description: The request has succeeded and a new resource has been created as a result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          description: The request breaks the contract schema; Fastify's request validation answers it.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '404':
+          description: No event type has this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventTypeNotFoundError'
+        '409':
+          description: The interval overlaps a booking of any event type.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingConflictError'
+        '422':
+          description: 'The interval is not a slot: off the slot step, outside the booking window or working hours, or not after the current moment.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnavailableTimeError'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BookingRequest'
+  /api/event-types/{id}/slots:
+    get:
+      operationId: listSlots
+      description: Exactly 14 days of the booking window in ascending order, starting with today by the server clock in the owner's time zone.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BookingWindowDay'
+        '404':
+          description: No event type has this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EventTypeNotFoundError'
+  /api/health:
+    get:
+      operationId: getHealth
+      parameters: []
+      responses:
+        '200':
+          description: The request has succeeded.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+components:
+  schemas:
+    ApiError:
+      type: object
+      required:
+        - statusCode
+        - code
+        - error
+        - message
+      properties:
+        statusCode:
+          type: integer
+          format: int32
+        code:
+          type: string
+        error:
+          type: string
+        message:
+          type: string
+      description: |-
+        Error body in Fastify's format; clients tell errors apart by `code`.
+        A concrete error extends it with `@statusCode` and a literal `code`.
+    Booking:
+      type: object
+      required:
+        - eventType
+        - start
+        - end
+        - guestName
+        - guestEmail
+        - createdAt
+      properties:
+        eventType:
+          allOf:
+            - $ref: '#/components/schemas/EventType'
+          description: 'The whole event type: event types never change.'
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+          description: The start plus the event type's duration.
+        guestName:
+          type: string
+        guestEmail:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+          description: The server's current moment when it saved the booking.
+      description: 'A booked interval. It has no id: bookings never overlap, so `start` is unique.'
+    BookingConflictError:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+          enum:
+            - BOOKING_CONFLICT
+      allOf:
+        - $ref: '#/components/schemas/ApiError'
+      description: The interval overlaps a booking of any event type.
+    BookingRequest:
+      type: object
+      required:
+        - start
+        - guestName
+        - guestEmail
+      properties:
+        start:
+          type: string
+          format: date-time
+          description: 'Any offset is accepted: the server compares moments, not strings.'
+        guestName:
+          type: string
+          minLength: 1
+          maxLength: 100
+          pattern: \S
+          description: At least one non-whitespace character; the server keeps it as received.
+        guestEmail:
+          type: string
+          maxLength: 254
+          format: email
+      description: What the guest sends to book a slot; the event type comes in the path.
+    BookingWindowDay:
+      type: object
+      required:
+        - date
+        - slots
+      properties:
+        date:
+          type: string
+          format: date
+          description: The day in the owner's time zone, `Europe/Moscow`.
+        slots:
+          type: array
+          items:
+            $ref: '#/components/schemas/Slot'
+          description: Every slot in ascending order, free or not; empty on weekends or a past today.
+      description: A day of the booking window.
+    EventType:
+      type: object
+      required:
+        - id
+        - title
+        - durationMinutes
+      properties:
+        id:
+          type: string
+          maxLength: 50
+          pattern: ^[a-z0-9]+(-[a-z0-9]+)*$
+          description: Part of the booking page address, e.g. `intro-30`.
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+          pattern: \S
+          description: At least one non-whitespace character.
+        description:
+          type: string
+          maxLength: 500
+          description: Plain text; absent when the owner gave none.
+        durationMinutes:
+          type: integer
+          format: int32
+          minimum: 15
+          maximum: 540
+          multipleOf: 15
+      description: A kind of call the owner offers.
+    EventTypeIdTakenError:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+          enum:
+            - EVENT_TYPE_ID_TAKEN
+      allOf:
+        - $ref: '#/components/schemas/ApiError'
+      description: Another event type already has this id.
+    EventTypeNotFoundError:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+          enum:
+            - EVENT_TYPE_NOT_FOUND
+      allOf:
+        - $ref: '#/components/schemas/ApiError'
+      description: No event type has this id.
+    Health:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum:
+            - ok
+    RouteNotFoundError:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+          enum:
+            - ROUTE_NOT_FOUND
+      allOf:
+        - $ref: '#/components/schemas/ApiError'
+      description: No route matches a path under `/api/`. No operation returns it, so the server answers it from its not-found handler.
+    Slot:
+      type: object
+      required:
+        - start
+        - end
+        - free
+      properties:
+        start:
+          type: string
+          format: date-time
+        end:
+          type: string
+          format: date-time
+        free:
+          type: boolean
+          description: False when the slot overlaps a booking of any event type.
+      description: An interval a booking may take; the server answers its moments in UTC, e.g. `2026-11-19T06:00:00.000Z`.
+    UnavailableTimeError:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+          enum:
+            - TIME_UNAVAILABLE
+      allOf:
+        - $ref: '#/components/schemas/ApiError'
+      description: 'The interval is not a slot: off the slot step, outside the booking window or working hours, or not after the current moment.'
+    ValidationError:
+      type: object
+      required:
+        - code
+      properties:
+        code:
+          type: string
+          enum:
+            - FST_ERR_VALIDATION
+      allOf:
+        - $ref: '#/components/schemas/ApiError'
+      description: The request breaks the contract schema; Fastify's request validation answers it.

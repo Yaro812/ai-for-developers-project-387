@@ -1,0 +1,36 @@
+name: check
+
+on:
+  push:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
+      # `mise install` has fetched Chromium; the runner also needs its system libraries.
+      - run: mise run browser -- --with-deps
+      - run: mise run check
+
+  # The image is built and checked here only: it is not published, and `mise run check` does not use Docker.
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: docker build --tag calendar .
+      - run: docker run --detach --name calendar --publish 3000:3000 calendar
+      # Without the OpenAPI file the server does not start; without the built frontend / answers 404.
+      - run: curl --fail --silent --show-error --retry 10 --retry-all-errors --retry-delay 1 http://localhost:3000/api/health
+      - run: curl --fail --silent --show-error http://localhost:3000/ | grep --quiet '<div id="root">'
+      - if: failure()
+        run: docker logs calendar

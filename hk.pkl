@@ -1,0 +1,37 @@
+amends "package://github.com/jdx/hk/releases/download/v2.13.0/hk@2.13.0#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v2.13.0/hk@2.13.0#/Builtins.pkl"
+
+// Hexlet generates this workflow and forbids editing it.
+// TypeSpec generates the OpenAPI file, and `mise run contract` compares it byte for byte.
+// release-please writes the changelog in its own Markdown style, which oxfmt would reformat.
+exclude = List(".github/workflows/hexlet-check.yml", "contract/openapi.yaml", "CHANGELOG.md")
+
+// Linters must be on PATH: mise.toml pins the binaries, package.json pins oxlint and oxfmt.
+local linters = new Mapping<String, Step> {
+    ["ox_lint"] = Builtins.ox_lint
+    ["oxfmt"] = Builtins.oxfmt
+    ["jactionlint"] = Builtins.jactionlint
+    ["trailing_whitespace"] = Builtins.trailing_whitespace
+    ["newlines"] = Builtins.newlines
+    ["check_merge_conflict"] = Builtins.check_merge_conflict
+}
+
+hooks {
+    ["pre-commit"] {
+        fix = true
+        stash = "git"
+        steps = linters
+    }
+    ["commit-msg"] {
+        steps {
+            ["conventional_commit"] = Builtins.check_conventional_commit
+        }
+    }
+    ["check"] {
+        steps = linters
+    }
+    ["fix"] {
+        fix = true
+        steps = linters
+    }
+}

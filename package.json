@@ -1,0 +1,21 @@
+{
+  "name": "calendar",
+  "version": "0.2.0",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "contract",
+    "e2e",
+    "frontend"
+  ],
+  "type": "module",
+  "devDependencies": {
+    "oxfmt": "^0.79.0",
+    "oxlint": "^1.94.0"
+  },
+  "overrides": {
+    "@hey-api/openapi-ts": {
+      "typescript": "~6.0.3"
+    }
+  }
+}
