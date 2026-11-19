@@ -1,0 +1,72 @@
+name: opencode
+
+on:
+  # The job's `if` lets in a trusted commenter only, and the first step refuses a fork's pull request.
+  issue_comment: # jactionlint ignore=dangerous-triggers
+    types: [created]
+  pull_request_review_comment:
+    types: [created]
+
+# One run per issue or pull request; a second command waits for the first.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.issue.number || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  opencode:
+    # A command from a trusted human only: bots, the agent itself among them, and outside authors are skipped.
+    if: >-
+      (contains(github.event.comment.body, '/oc') || contains(github.event.comment.body, '/opencode')) &&
+      github.event.comment.user.type != 'Bot' &&
+      contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      # OpenCode's standard authorization: it exchanges the OIDC token for a token of the GitHub App,
+      # and the App comments, pushes and opens pull requests.
+      contents: read
+      id-token: write
+      # For `gh` in the agent's shell, which the App token does not reach:
+      # the skills read and publish issues as docs/agents/issue-tracker.md describes.
+      issues: write
+      # For the fork check below.
+      pull-requests: read
+    steps:
+      # A fork's code never runs next to the model key, whoever writes the command.
+      - name: Refuse a pull request from a fork
+        if: github.event.issue.pull_request || github.event.pull_request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR: ${{ github.event.issue.number || github.event.pull_request.number }}
+        run: test "$(gh pr view "$PR" --repo "$GITHUB_REPOSITORY" --json isCrossRepository --jq .isCrossRepository)" = false
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # The same tools, npm dependencies and Git hooks as locally, so the agent can run `mise run check`.
+      - uses: jdx/mise-action@236a21c3b91f5db6d4e174b348674a0f0caac06d # v5.2.9
+      - run: mise run browser -- --with-deps
+
+      # Locally these skills come from the mattpocock-skills plugin; a fresh runner has none.
+      # They go to OpenCode's global directory, outside the working tree, so the agent cannot commit them.
+      - name: Install the skills of the first project
+        env:
+          SKILLS_REF: 24fe0ef7737efae15c87225755e9f6f5965e4888 # mattpocock/skills v1.3.1
+        run: |
+          git clone --quiet https://github.com/mattpocock/skills "$RUNNER_TEMP/skills"
+          git -C "$RUNNER_TEMP/skills" checkout --quiet "$SKILLS_REF"
+          mkdir -p ~/.config/opencode/skills
+          cp -R "$RUNNER_TEMP/skills/skills/engineering/." "$RUNNER_TEMP/skills/skills/productivity/." ~/.config/opencode/skills/
+
+      - uses: anomalyco/opencode/github@f4e363c8295fa90a03dddc451882fffe8fbce357 # v1.19.6
+        env:
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        with:
+          model: opencode/deepseek-v4.1-flash
+          mentions: /opencode,/oc
+          # Sessions are not published. This version of the action ignores the input; it records the decision.
+          share: false
