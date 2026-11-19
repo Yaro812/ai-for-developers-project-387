@@ -9,6 +9,7 @@ import {
   MantineProvider,
   createTheme,
 } from "@mantine/core";
+import type { CSSVariablesResolver } from "@mantine/core";
 import { BrowserRouter, Link, Outlet, Route, Routes, useLocation } from "react-router";
 import BookingPage from "./pages/BookingPage.tsx";
 import EventTypeCatalogPage from "./pages/EventTypeCatalogPage.tsx";
@@ -19,9 +20,19 @@ import UpcomingBookingsPage from "./pages/UpcomingBookingsPage.tsx";
 
 const theme = createTheme({
   primaryColor: "orange",
+  // White text on the orange of a filled button has a contrast of 2.6 where 4.5 is needed;
+  // with this the theme picks dark text on a light fill.
+  autoContrast: true,
   defaultRadius: "md",
   // Full width up to the size: a page is a flex item of the layout and would shrink to its content.
   components: { Container: Container.extend({ defaultProps: { size: "lg", w: "100%" } }) },
+});
+
+// Dimmed text is gray.6 by default: 3.3 against white. gray.7 gives 8.2.
+const cssVariables: CSSVariablesResolver = () => ({
+  variables: {},
+  light: { "--mantine-color-dimmed": "var(--mantine-color-gray-7)" },
+  dark: {},
 });
 
 const sections = [
@@ -84,7 +95,7 @@ function Layout() {
 
 export default function App() {
   return (
-    <MantineProvider theme={theme}>
+    <MantineProvider theme={theme} cssVariablesResolver={cssVariables}>
       <BrowserRouter>
         <Routes>
           <Route element={<Layout />}>
