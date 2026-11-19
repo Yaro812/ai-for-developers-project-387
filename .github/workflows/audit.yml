@@ -235,11 +235,12 @@ jobs:
             echo "::error::Данных аудита нет: $(jq --raw-output .reason summary.json)"
             exit 1
           fi
-          issues=$(gh issue list --repo "$GITHUB_REPOSITORY" --label audit --state all --limit 200 --json number,title,state,stateReason)
+          issues=$(gh issue list --repo "$GITHUB_REPOSITORY" --label audit --state all --limit 200 --json number,title,state,stateReason,closedAt)
           jq --raw-output --argjson issues "$issues" '
             .findings[].key as $key
             | [ $issues[] | select(.title | endswith("[\($key)]")) ]
             | (map(select(.state == "OPEN")) | length) as $open
-            | select($open > 1 or ($open == 0 and all(.stateReason != "NOT_PLANNED")))
+            # As the agent is told: without an open issue, only the latest closed one decides.
+            | select($open > 1 or ($open == 0 and (max_by(.closedAt) | .stateReason) != "NOT_PLANNED"))
             | "::error::Находка \($key): открытых задач \($open), ожидается одна"' summary.json | tee problems.txt
           test ! -s problems.txt
