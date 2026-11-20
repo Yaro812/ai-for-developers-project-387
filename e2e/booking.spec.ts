@@ -94,9 +94,8 @@ test("a guest books without a topic and the owner sees no topic line", async ({ 
     name: "Бронирование подтверждено. До встречи!",
   });
   await expect(confirmation).toBeVisible();
-  await expect(confirmation.getByRole("paragraph")).toHaveCount(2);
-  await expect(confirmation).toContainText("Борис");
-  await expect(confirmation).toContainText(guestEmailWithoutTopic);
+  // A booking without a topic has no topic line.
+  await expect(confirmation.getByRole("paragraph")).toHaveText(["Борис", guestEmailWithoutTopic]);
 
   await page.getByRole("link", { name: "Предстоящие бронирования" }).click();
   const card = page
