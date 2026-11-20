@@ -96,7 +96,7 @@ jobs:
       - name: Check the model key and mark the agent's start
         id: start
         env:
-          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_HEXLET_API_KEY }}
         run: |
           test -n "$OPENCODE_API_KEY"
           echo "at=$(date +%s)" >> "$GITHUB_OUTPUT"
@@ -105,7 +105,7 @@ jobs:
         # Shorter than the job's timeout, so the steps and the job after the agent still run.
         timeout-minutes: 25
         env:
-          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_HEXLET_API_KEY }}
           GH_TOKEN: ${{ github.token }}
           # Nobody answers a permission request on a runner, so a rule that asks holds the agent until the timeout.
           # OpenCode asks by default about a path outside the repository, a repeated tool call and an .env file;
@@ -119,7 +119,7 @@ jobs:
               }
             }
         with:
-          model: opencode/big-pickle
+          model: opencode/deepseek-v4.1-flash
           mentions: /opencode,/oc
           # Sessions are not published. This version of the action ignores the input; it records the decision.
           share: false
