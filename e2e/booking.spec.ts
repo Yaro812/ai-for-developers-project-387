@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 // Fake guest addresses on the reserved example.com domain.
 const email = (local: string) => `${local}@example.com`;
@@ -6,24 +6,20 @@ const guestEmail = email("anna");
 const guestEmailWithoutTopic = email("boris");
 const topic = "Обсуждение договора";
 
-// The path from README on real clocks: the server starts empty for every run, and the date is not set.
-test("the owner creates an event type, a guest books it, the owner sees the booking", async ({
-  page,
-}) => {
+async function createEventType(page: Page, { id, title }: { id: string; title: string }) {
   await page.goto("/owner/event-types/new");
-  await page.getByRole("textbox", { name: "id", exact: true }).fill("intro-30");
-  await page.getByRole("textbox", { name: "Название" }).fill("Знакомство");
+  await page.getByRole("textbox", { name: "id", exact: true }).fill(id);
+  await page.getByRole("textbox", { name: "Название" }).fill(title);
   await page.getByRole("spinbutton", { name: "Длительность, мин." }).fill("30");
   await page.getByRole("button", { name: "Создать" }).click();
-  await expect(page.getByRole("link", { name: /\/book\/intro-30$/ })).toBeVisible();
+  await expect(page.getByRole("link", { name: new RegExp(`/book/${id}$`) })).toBeVisible();
+}
 
-  await page.goto("/");
-  await page.getByRole("link", { name: "Записаться на звонок" }).click();
-  await page.getByRole("link", { name: "Знакомство" }).click();
-  // Day buttons read «чт, 19 нояб., свободно: 35», slot buttons «10:00–10:30 Свободно».
-  // The guest's day must keep a free slot after the booking, or the page moves to another day.
-  // Booking the first of three free slots takes two at most, and the last hour of a working day
-  // leaves fewer; if that day is the only one of its month, the next month has a roomy day.
+// Day buttons read «чт, 19 нояб., свободно: 35», slot buttons «10:00–10:30 Свободно».
+// The guest's day must keep a free slot after the booking, or the page moves to another day.
+// Booking the first of three free slots takes two at most, and the last hour of a working day
+// leaves fewer; if that day is the only one of its month, the next month has a roomy day.
+async function openRoomyDay(page: Page) {
   await expect(page.getByRole("button", { name: /^\S+, \d+ \S+, свободно/ }).first()).toBeVisible();
   const roomyDay = page
     .getByRole("button", { name: /^\S+, \d+ \S+, свободно: ([3-9]|\d{2,})$/ })
@@ -32,6 +28,18 @@ test("the owner creates an event type, a guest books it, the owner sees the book
     await page.getByRole("button", { name: "Следующий месяц" }).click();
   }
   await roomyDay.click();
+}
+
+// The path from README on real clocks: the server starts empty for every run, and the date is not set.
+test("the owner creates an event type, a guest books it, the owner sees the booking", async ({
+  page,
+}) => {
+  await createEventType(page, { id: "intro-30", title: "Знакомство" });
+
+  await page.goto("/");
+  await page.getByRole("link", { name: "Записаться на звонок" }).click();
+  await page.getByRole("link", { name: "Знакомство" }).click();
+  await openRoomyDay(page);
   const slot = page.getByRole("button", { name: /^\d\d:\d\d–\d\d:\d\d/ }).first();
   const slotName = await slot.textContent();
   await slot.click();
@@ -63,24 +71,12 @@ test("the owner creates an event type, a guest books it, the owner sees the book
 
 // The server and its storage are shared with the first test, so this type and guest are distinct.
 test("a guest books without a topic and the owner sees no topic line", async ({ page }) => {
-  await page.goto("/owner/event-types/new");
-  await page.getByRole("textbox", { name: "id", exact: true }).fill("no-topic-30");
-  await page.getByRole("textbox", { name: "Название" }).fill("Короткий звонок");
-  await page.getByRole("spinbutton", { name: "Длительность, мин." }).fill("30");
-  await page.getByRole("button", { name: "Создать" }).click();
-  await expect(page.getByRole("link", { name: /\/book\/no-topic-30$/ })).toBeVisible();
+  await createEventType(page, { id: "no-topic-30", title: "Короткий звонок" });
 
   await page.goto("/");
   await page.getByRole("link", { name: "Записаться на звонок" }).click();
   await page.getByRole("link", { name: "Короткий звонок" }).click();
-  await expect(page.getByRole("button", { name: /^\S+, \d+ \S+, свободно/ }).first()).toBeVisible();
-  const roomyDay = page
-    .getByRole("button", { name: /^\S+, \d+ \S+, свободно: ([3-9]|\d{2,})$/ })
-    .first();
-  if ((await roomyDay.count()) === 0) {
-    await page.getByRole("button", { name: "Следующий месяц" }).click();
-  }
-  await roomyDay.click();
+  await openRoomyDay(page);
   await page
     .getByRole("button", { name: /^\d\d:\d\d–\d\d:\d\d Свободно$/ })
     .first()
